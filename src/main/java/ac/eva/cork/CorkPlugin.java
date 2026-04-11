@@ -220,7 +220,7 @@ public class CorkPlugin extends JavaPlugin {
                 pluginInitField.set(pluginClassLoader, null);
 
                 pluginClassLoader.close();
-            } catch (IOException | NoSuchFieldException | IllegalAccessException  ex) {
+            } catch (IOException | NoSuchFieldException | IllegalAccessException ex) {
                 log.error("failed to close plugin class loader", ex);
             }
 

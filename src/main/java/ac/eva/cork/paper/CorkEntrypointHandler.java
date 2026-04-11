@@ -26,7 +26,8 @@ public class CorkEntrypointHandler implements EntrypointHandler {
             throw new IllegalArgumentException("no storage registered for entrypoint %s".formatted(entrypoint));
         }
 
-        storage.register(provider);    }
+        storage.register(provider);
+    }
 
     @Override
     public void enter(Entrypoint<?> entrypoint) {
