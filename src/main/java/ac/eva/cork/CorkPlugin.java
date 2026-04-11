@@ -30,6 +30,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.SimpleCommandMap;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.InvalidPluginException;
@@ -41,12 +42,21 @@ import org.incendo.cloud.execution.ExecutionCoordinator;
 import org.incendo.cloud.paper.LegacyPaperCommandManager;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 @Slf4j
 public class CorkPlugin extends JavaPlugin {
@@ -72,13 +82,8 @@ public class CorkPlugin extends JavaPlugin {
     }
 
     public Plugin loadPlugin(Path path) throws InvalidPluginException {
-        for (Plugin otherPlugin : Bukkit.getPluginManager().getPlugins()) {
-            if (!(otherPlugin instanceof JavaPlugin otherJavaPlugin)) continue;
-
-            Path jarPath = BukkitJavaPluginReflection.getPluginFile(otherJavaPlugin).toPath();
-            if (jarPath.equals(path)) {
-                throw new IllegalArgumentException("plugin is already loaded");
-            }
+        if (isPluginFileLoaded(path)) {
+            throw new IllegalArgumentException("plugin is already loaded");
         }
 
         CorkEntrypointHandler corkEntrypointHandler = new CorkEntrypointHandler(PaperInstanceManagerReflection.getPaperMetaDependencyTree());
@@ -232,5 +237,96 @@ public class CorkPlugin extends JavaPlugin {
 
     public Path getPluginsDirectory() {
         return getDataPath().getParent();
+    }
+
+    public boolean isPluginFileLoaded(Path path) {
+        Path normalizedPath = normalizePluginPath(path);
+        Optional<String> pluginName = getPluginName(path);
+
+        return getLoadedPluginSnapshot().contains(normalizedPath, pluginName);
+    }
+
+    public Optional<String> getPluginName(Path path) {
+        try (JarFile jarFile = new JarFile(path.toFile())) {
+            Optional<String> paperPluginName = getPluginName(jarFile, "paper-plugin.yml");
+            if (paperPluginName.isPresent()) {
+                return paperPluginName;
+            }
+
+            return getPluginName(jarFile, "plugin.yml");
+        } catch (IOException ex) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<String> getPluginName(JarFile jarFile, String configPath) throws IOException {
+        JarEntry configEntry = jarFile.getJarEntry(configPath);
+        if (configEntry == null) {
+            return Optional.empty();
+        }
+
+        try (InputStream inputStream = jarFile.getInputStream(configEntry);
+             InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+            String pluginName = YamlConfiguration.loadConfiguration(reader).getString("name");
+            if (pluginName == null || pluginName.isBlank()) {
+                return Optional.empty();
+            }
+
+            return Optional.of(pluginName);
+        }
+    }
+
+    public LoadedPluginSnapshot getLoadedPluginSnapshot() {
+        Set<Path> paths = new HashSet<>();
+        Set<String> identifiers = new HashSet<>();
+
+        for (Plugin loadedPlugin : Bukkit.getPluginManager().getPlugins()) {
+            addLoadedPluginIdentifiers(loadedPlugin, identifiers);
+
+            if (!(loadedPlugin instanceof JavaPlugin loadedJavaPlugin)) {
+                continue;
+            }
+
+            paths.add(normalizePluginPath(BukkitJavaPluginReflection.getPluginFile(loadedJavaPlugin).toPath()));
+        }
+
+        return new LoadedPluginSnapshot(Set.copyOf(paths), Set.copyOf(identifiers));
+    }
+
+    private void addLoadedPluginIdentifiers(Plugin plugin, Set<String> identifiers) {
+        PluginMeta pluginMeta = plugin.getPluginMeta();
+        identifiers.add(normalizeIdentifier(plugin.getName()));
+        identifiers.add(normalizeIdentifier(pluginMeta.getName()));
+
+        for (String providedPlugin : pluginMeta.getProvidedPlugins()) {
+            identifiers.add(normalizeIdentifier(providedPlugin));
+        }
+    }
+
+    public Path normalizePluginPath(Path path) {
+        try {
+            if (Files.exists(path)) {
+                return path.toRealPath();
+            }
+        } catch (IOException ignored) {
+        }
+
+        return path.toAbsolutePath().normalize();
+    }
+
+    private String normalizeIdentifier(String identifier) {
+        return identifier.toLowerCase(Locale.ENGLISH);
+    }
+
+    public record LoadedPluginSnapshot(Set<Path> paths, Set<String> identifiers) {
+        public boolean contains(Path path, Optional<String> pluginName) {
+            if (this.paths.contains(path)) {
+                return true;
+            }
+
+            return pluginName
+                    .map(name -> this.identifiers.contains(name.toLowerCase(Locale.ENGLISH)))
+                    .orElse(false);
+        }
     }
 }

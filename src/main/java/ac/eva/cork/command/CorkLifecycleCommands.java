@@ -10,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.incendo.cloud.annotation.specifier.Greedy;
 import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.Permission;
@@ -24,7 +25,7 @@ public class CorkLifecycleCommands {
 
     @Command("cork load <file>")
     @Permission("cork.load")
-    public void corkLoad(CommandSender sender, @Argument(value = "file", suggestions = "pluginFiles") String fileName) {
+    public void corkLoad(CommandSender sender, @Greedy @Argument(value = "file", suggestions = "pluginFiles") String fileName) {
         File pluginFile = this.plugin.getPluginsDirectory().resolve(fileName).toFile();
         if (!pluginFile.exists() || !pluginFile.isFile()) {
             sender.sendMessage(CorkStyling.PREFIX.append(Component.text("plugin file doesn't exist")));
