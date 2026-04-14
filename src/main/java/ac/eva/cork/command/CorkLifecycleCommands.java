@@ -49,7 +49,7 @@ public class CorkLifecycleCommands {
             return;
         }
 
-        Bukkit.getScheduler().runTask(this.plugin, () -> {
+        Bukkit.getGlobalRegionScheduler().run(this.plugin, $ -> {
             try {
                 this.plugin.unloadPlugin(targetPlugin);
                 sender.sendMessage(CorkStyling.PREFIX
@@ -89,7 +89,7 @@ public class CorkLifecycleCommands {
         }
         File pluginFile = BukkitJavaPluginReflection.getPluginFile(targetJavaPlugin);
 
-        Bukkit.getScheduler().runTask(this.plugin, () -> {
+        Bukkit.getGlobalRegionScheduler().run(this.plugin, $ -> {
             try {
                 this.plugin.unloadPlugin(targetPlugin);
                 sender.sendMessage(CorkStyling.PREFIX
@@ -172,7 +172,7 @@ public class CorkLifecycleCommands {
      */
 
     private void loadPluginWithFeedback(CommandSender sender, File pluginFile) {
-        Bukkit.getScheduler().runTask(this.plugin, () -> {
+        Bukkit.getGlobalRegionScheduler().run(this.plugin, $ -> {
             try {
                 Plugin loadedPlugin = this.plugin.loadPlugin(pluginFile.toPath());
                 sender.sendMessage(CorkStyling.PREFIX
