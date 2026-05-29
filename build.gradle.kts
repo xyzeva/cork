@@ -23,7 +23,7 @@ dependencies {
     ).forEach {
         bukkitLibrary("$it:2.0.0")
     }
-    bukkitLibrary("org.incendo:cloud-paper:2.0.0-beta.10")
+    bukkitLibrary("org.incendo:cloud-paper:2.0.0-beta.15")
 }
 
 java {
