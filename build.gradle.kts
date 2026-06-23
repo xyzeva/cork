@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "ac.eva"
-version = "1.1"
+version = "1.1.1"
 
 repositories {
     mavenCentral()
@@ -23,7 +23,7 @@ dependencies {
     ).forEach {
         bukkitLibrary("$it:2.0.0")
     }
-    bukkitLibrary("org.incendo:cloud-paper:2.0.0-beta.15")
+    bukkitLibrary("org.incendo:cloud-paper:2.0.0-beta.16")
 }
 
 java {
